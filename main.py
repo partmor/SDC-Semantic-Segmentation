@@ -43,6 +43,7 @@ def load_vgg(sess, vgg_path):
     
     return image_input, keep_prob, layer3_out, layer4_out, layer7_out
 
+
 tests.test_load_vgg(load_vgg, tf)
 
 
@@ -55,8 +56,71 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :param num_classes: Number of classes to classify
     :return: The Tensor for the last layer of output
     """
-    # TODO: Implement function
-    return None
+
+    # 1x1 convolution of vgg layers
+    vgg_layer3_conv_1x1 = tf.layers.conv2d(
+        vgg_layer3_out,
+        filters=num_classes,
+        kernel_size=1,
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    vgg_layer4_conv_1x1 = tf.layers.conv2d(
+        vgg_layer4_out,
+        filters=num_classes,
+        kernel_size=1,
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    vgg_layer7_conv_1x1 = tf.layers.conv2d(
+        vgg_layer7_out,
+        filters=num_classes,
+        kernel_size=1,
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    # decoder layer 1: upsampling
+    fcn_decoder_layer1 = tf.layers.conv2d_transpose(
+        vgg_layer7_conv_1x1,
+        filters=num_classes,
+        kernel_size=4,
+        strides=(2, 2),
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    # decoder layer 2: skip connection from vgg's layer 4
+    fcn_decoder_layer2 = tf.add(fcn_decoder_layer1, vgg_layer4_conv_1x1)
+
+    # decoder layer 3: upsampling
+    fcn_decoder_layer3 = tf.layers.conv2d_transpose(
+        fcn_decoder_layer2,
+        filters=num_classes,
+        kernel_size=4,
+        strides=(2, 2),
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    # decoder layer 4: skip connection from vgg's layer 3
+    fcn_decoder_layer4 = tf.add(fcn_decoder_layer3, vgg_layer3_conv_1x1)
+
+    # decoder layer 5: final upsampling
+    fcn_decoder_layer5 = tf.layers.conv2d_transpose(
+        fcn_decoder_layer4,
+        filters=num_classes,
+        kernel_size=16,
+        strides=(8, 8),
+        padding='same',
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+    )
+
+    return fcn_decoder_layer5
+
+
 tests.test_layers(layers)
 
 
