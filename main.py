@@ -165,42 +165,78 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
     :param keep_prob: TF Placeholder for dropout keep probability
     :param learning_rate: TF Placeholder for learning rate
     """
-    # TODO: Implement function
-    pass
+
+    sess.run(tf.global_variables_initializer())
+
+    for i in range(epochs):
+        print('epoch %i -----' % (i + 1))
+        for X, y in get_batches_fn(batch_size):
+            loss, _ = sess.run(
+                [cross_entropy_loss, train_op],
+                feed_dict={
+                    input_image: X,
+                    correct_label: y,
+                    keep_prob: 0.8,
+                    learning_rate: learning_rate
+                }
+            )
+            print('loss: %0.3f' % loss)
+        print()
+
+
 tests.test_train_nn(train_nn)
 
 
 def run():
+
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
     runs_dir = './runs'
     tests.test_for_kitti_dataset(data_dir)
 
-    # Download pretrained vgg model
+    # training hyper parameters
+    epochs = 20
+    batch_size = 5
+    learning_rate = tf.constant(1e-3)
+
+    # download pretrained vgg model (if needed)
     helper.maybe_download_pretrained_vgg(data_dir)
 
-    # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
-    # You'll need a GPU with at least 10 teraFLOPS to train on.
-    #  https://www.cityscapes-dataset.com/
-
+    # training session
     with tf.Session() as sess:
-        # Path to vgg model
+
+        # path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
-        # Create function to get batches
+
+        # create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
 
         # OPTIONAL: Augment Images for better results
         #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
-        # TODO: Build NN using load_vgg, layers, and optimize function
+        # build NN
+        correct_label = tf.placeholder(dtype=tf.float32, shape=[None, image_shape[0], image_shape[1], num_classes])
+        vgg_input, keep_prob, vgg_layer3, vgg_layer4, vgg_layer7 = load_vgg(sess, vgg_path)
+        fcn_last_layer = layers(vgg_layer3, vgg_layer4, vgg_layer7, num_classes)
+        logits, train_op, cross_entropy_loss = optimize(fcn_last_layer, correct_label, learning_rate, num_classes)
 
-        # TODO: Train NN using the train_nn function
+        # train NN
+        train_nn(
+            sess=sess,
+            epochs=epochs,
+            batch_size=batch_size,
+            get_batches_fn=get_batches_fn,
+            train_op=train_op,
+            cross_entropy_loss=cross_entropy_loss,
+            input_image=vgg_input,
+            correct_label=correct_label,
+            keep_prob=keep_prob,
+            learning_rate=learning_rate
+        )
 
-        # TODO: Save inference data using helper.save_inference_samples
-        #  helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
-
-        # OPTIONAL: Apply the trained model to a video
+        # save inference data
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, vgg_input)
 
 
 if __name__ == '__main__':
