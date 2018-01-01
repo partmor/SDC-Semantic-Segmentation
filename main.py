@@ -142,8 +142,9 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     # loss function
     cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels))
 
-    # trainer / optimizer
-    train_op = tf.train.AdamOptimizer(learning_rate).minimize(cross_entropy_loss)
+    # trainer
+    opt = tf.train.AdamOptimizer(learning_rate)
+    train_op = opt.minimize(cross_entropy_loss)
     return logits, train_op, cross_entropy_loss
 
 
@@ -176,8 +177,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
                 feed_dict={
                     input_image: X,
                     correct_label: y,
-                    keep_prob: 0.8,
-                    learning_rate: learning_rate
+                    keep_prob: 0.8
                 }
             )
             print('loss: %0.3f' % loss)
@@ -188,7 +188,6 @@ tests.test_train_nn(train_nn)
 
 
 def run():
-
     num_classes = 2
     image_shape = (160, 576)
     data_dir = './data'
@@ -211,9 +210,6 @@ def run():
 
         # create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, 'data_road/training'), image_shape)
-
-        # OPTIONAL: Augment Images for better results
-        #  https://datascience.stackexchange.com/questions/5224/how-to-prepare-augment-images-for-neural-network
 
         # build NN
         correct_label = tf.placeholder(dtype=tf.float32, shape=[None, image_shape[0], image_shape[1], num_classes])
