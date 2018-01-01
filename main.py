@@ -57,6 +57,8 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
     :return: The 4D Tensor for the last layer of output.
              shape = (batch_size, original_height, original_width, num_classes)
     """
+    stddev_conv_1x1 = 1e-2
+    stddev_conv_trans = 1e-2
 
     # 1x1 convolution of vgg layers
     vgg_layer3_conv_1x1 = tf.layers.conv2d(
@@ -64,7 +66,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         filters=num_classes,
         kernel_size=1,
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_1x1)
     )
 
     vgg_layer4_conv_1x1 = tf.layers.conv2d(
@@ -72,7 +74,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         filters=num_classes,
         kernel_size=1,
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_1x1)
     )
 
     vgg_layer7_conv_1x1 = tf.layers.conv2d(
@@ -80,7 +82,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         filters=num_classes,
         kernel_size=1,
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_1x1)
     )
 
     # decoder layer 1: upsampling
@@ -90,7 +92,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         kernel_size=4,
         strides=(2, 2),
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_trans)
     )
 
     # decoder layer 2: skip connection from vgg's layer 4
@@ -103,7 +105,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         kernel_size=4,
         strides=(2, 2),
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_trans)
     )
 
     # decoder layer 4: skip connection from vgg's layer 3
@@ -116,7 +118,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
         kernel_size=16,
         strides=(8, 8),
         padding='same',
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3)
+        kernel_initializer=tf.truncated_normal_initializer(stddev=stddev_conv_trans)
     )
 
     return fcn_decoder_layer5
@@ -197,7 +199,7 @@ def run():
     # training hyper parameters
     epochs = 20
     batch_size = 5
-    learning_rate = tf.constant(1e-3)
+    learning_rate = tf.constant(1e-4)
 
     # download pretrained vgg model (if needed)
     helper.maybe_download_pretrained_vgg(data_dir)
